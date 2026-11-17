@@ -14,9 +14,7 @@ SITE_FEEDS = [
 # Google News searches: Google already does the matching, so no keyword
 # filter is applied. Build more at news.google.com/rss/search?q=YOUR+QUERY
 # (use + for spaces and %22 for quote marks; when:7d limits to the past week).
-SEARCH_FEEDS = [
-    "https://news.google.com/rss/search?q=%22UC+Irvine%22+%22biomedical+engineering%22+when:7d&hl=en-US&gl=US&ceid=US:en",
-]
+SEARCH_FEEDS = []
 
 KEYWORDS = [
     "biomedical",
