@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 # Campus-wide feeds: a story is kept only if it matches a keyword or name below.
 SITE_FEEDS = [
-    "https://news.uci.edu/feed/",
+    "https://news.uci.edu/feed/", "https://www.google.com/"
 ]
 
 # Feeds where everything is relevant (student orgs, publication searches).
