@@ -6,21 +6,26 @@ import feedparser
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
 
-# Feeds covering the whole campus: stories must match a keyword below.
+# Campus-wide feeds: a story is kept only if it matches a keyword or name below.
 SITE_FEEDS = [
     "https://news.uci.edu/feed/",
 ]
 
-# Google News searches: Google already does the matching, so no keyword
-# filter is applied. Build more at news.google.com/rss/search?q=YOUR+QUERY
-# (use + for spaces and %22 for quote marks; when:7d limits to the past week).
-SEARCH_FEEDS = []
+# Feeds where everything is relevant (student orgs, publication searches).
+# No keyword check is applied. If a feed doesn't work, the run log shows a
+# warning and the script carries on with the others.
+SEARCH_FEEDS = ["https://pubmed.ncbi.nlm.nih.gov/rss/search/1Ds1JEbG0OW5BdrY4sRlHbcspN3vr7h4LWMc_03mZ2C8HY5QMY/?limit=100&utm_campaign=pubmed-2&fc=20261116200730"]
 
 KEYWORDS = [
     "biomedical",
     "bioengineering",
     "bioengineer",
     "bme",
+    "BME",
+    "BMES",
+    "bmes",
+    "gabes",
+    "GABES",
     "tissue engineering",
     "biomaterials",
     "medical device",
@@ -29,7 +34,22 @@ KEYWORDS = [
     "samueli school of engineering",
 ]
 
-DAYS_BACK = 7
+# UCI BME faculty (from the department's faculty page). Full names are used
+# so common surnames like Lee or Liu don't cause false matches.
+FACULTY = [
+    "Michelle Digman", "Kyriacos Athanasiou", "Elliot Botvinick",
+    "Gregory Brewer", "James Brody", "Zhongping Chen", "Naomi Chesler",
+    "Bernard Choi", "Fangyuan Ding", "Tim Downing", "Enrico Gratton",
+    "Anna Grosberg", "Jered Haun", "Elliot Hui", "Tibor Juhasz",
+    "Arash Kheradvar", "Michelle Khine", "Christine King", "Abraham Lee",
+    "Chang Liu", "Wendy Liu", "Beth Lopour", "Joshua Mauney",
+    "Zoran Nenadic", "Ronke Olabisi", "Pim Oomen", "Daryl Preece",
+    "Gurneet Sangha", "William Tang", "Bruce Tromberg", "Liangzhong Xiang",
+]
+
+MATCH_TERMS = [k.lower() for k in KEYWORDS + FACULTY]
+
+DAYS_BACK = 7   # how many days back to look
 
 cutoff = datetime.now(timezone.utc) - timedelta(days=DAYS_BACK)
 seen_links = set()
@@ -40,8 +60,8 @@ stories = []
 def collect(url, use_keywords):
     feed = feedparser.parse(url)
     print(f"{url[:70]}...: {len(feed.entries)} entries found")
-    if feed.bozo and not feed.entries:
-        print(f"  Warning: could not read this feed ({feed.get('bozo_exception')})")
+    if not feed.entries:
+        print("  Warning: no entries (the feed may not exist or may be empty)")
         return
     for e in feed.entries:
         if not e.get("published_parsed"):
@@ -53,7 +73,7 @@ def collect(url, use_keywords):
             continue
         if use_keywords:
             text = (e.title + " " + e.get("summary", "")).lower()
-            if not any(k in text for k in KEYWORDS):
+            if not any(k in text for k in MATCH_TERMS):
                 continue
         seen_links.add(e.link)
         seen_titles.add(e.title.lower())
