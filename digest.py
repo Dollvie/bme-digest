@@ -46,3 +46,8 @@ with open("bme_digest.txt", "w", encoding="utf-8") as f:
         f.write(f"{when:%b %d} - {title}\n{link}\n\n")
 
 print(f"{len(stories)} matching stories written to bme_digest.txt")
+
+print("--- sample of recent entries ---")
+for e in feed.entries[:10]:
+    print(e.get("published", "no date"), "|", e.title)
+print("Oldest entry:", feed.entries[-1].get("published", "no date"))
