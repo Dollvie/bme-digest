@@ -1,43 +1,71 @@
 # Daily UCI BME news digest
-# Reads RSS feeds, keeps recent stories that match your keywords,
-# and writes them to bme_digest.txt (empty file = no new stories).
+# Reads RSS feeds, keeps recent stories, and writes them to bme_digest.txt
+# (an empty file means no new stories, so no notification is sent).
 
 import feedparser
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
 
-# Add any other feed URLs you confirm work (open them in a browser first).
-FEEDS = [
+# Feeds covering the whole campus: stories must match a keyword below.
+SITE_FEEDS = [
     "https://news.uci.edu/feed/",
 ]
 
+# Google News searches: Google already does the matching, so no keyword
+# filter is applied. Build more at news.google.com/rss/search?q=YOUR+QUERY
+# (use + for spaces and %22 for quote marks; when:7d limits to the past week).
+SEARCH_FEEDS = [
+    "https://news.google.com/rss/search?q=%22UC+Irvine%22+%22biomedical+engineering%22+when:7d&hl=en-US&gl=US&ceid=US:en",
+]
+
 KEYWORDS = [
-    "biomedical engineering",
-    "bme",
+    "biomedical",
     "bioengineering",
+    "bioengineer",
+    "bme",
+    "tissue engineering",
+    "biomaterials",
+    "medical device",
+    "regenerative",
+    "biosensor",
     "samueli school of engineering",
 ]
 
-DAYS_BACK = 30  # BME news is sparse, so look back a week
+DAYS_BACK = 7
 
 cutoff = datetime.now(timezone.utc) - timedelta(days=DAYS_BACK)
-seen = set()
+seen_links = set()
+seen_titles = set()
 stories = []
 
-for url in FEEDS:
+
+def collect(url, use_keywords):
     feed = feedparser.parse(url)
-    print(f"{url}: {len(feed.entries)} entries found")
+    print(f"{url[:70]}...: {len(feed.entries)} entries found")
     if feed.bozo and not feed.entries:
         print(f"  Warning: could not read this feed ({feed.get('bozo_exception')})")
-        continue
+        return
     for e in feed.entries:
-        if not e.get("published_parsed") or e.link in seen:
+        if not e.get("published_parsed"):
+            continue
+        if e.link in seen_links or e.title.lower() in seen_titles:
             continue
         when = datetime.fromtimestamp(timegm(e.published_parsed), timezone.utc)
-        text = (e.title + " " + e.get("summary", "")).lower()
-        if when > cutoff and any(k in text for k in KEYWORDS):
-            seen.add(e.link)
-            stories.append((when, e.title, e.link))
+        if when <= cutoff:
+            continue
+        if use_keywords:
+            text = (e.title + " " + e.get("summary", "")).lower()
+            if not any(k in text for k in KEYWORDS):
+                continue
+        seen_links.add(e.link)
+        seen_titles.add(e.title.lower())
+        stories.append((when, e.title, e.link))
+
+
+for url in SITE_FEEDS:
+    collect(url, use_keywords=True)
+for url in SEARCH_FEEDS:
+    collect(url, use_keywords=False)
 
 stories.sort(reverse=True)
 
@@ -46,8 +74,3 @@ with open("bme_digest.txt", "w", encoding="utf-8") as f:
         f.write(f"{when:%b %d} - {title}\n{link}\n\n")
 
 print(f"{len(stories)} matching stories written to bme_digest.txt")
-
-print("--- sample of recent entries ---")
-for e in feed.entries[:10]:
-    print(e.get("published", "no date"), "|", e.title)
-print("Oldest entry:", feed.entries[-1].get("published", "no date"))
