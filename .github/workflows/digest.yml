@@ -1,0 +1,42 @@
+# Save this file as: .github/workflows/digest.yml
+name: Daily BME digest
+
+on:
+  schedule:
+    - cron: '7 15 * * *'   # 15:07 UTC = 7:07 AM Pacific in winter (use 14:07 in summer)
+  workflow_dispatch:        # lets you run it by hand to test
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install feedparser
+
+      - run: python digest.py
+
+      - name: Save digest
+        run: |
+          git config user.name "digest-bot"
+          git config user.email "digest-bot@users.noreply.github.com"
+          git add bme_digest.txt
+          git diff --cached --quiet || (git commit -m "Daily digest" && git push)
+
+      - name: Notify phone
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          if [ -s bme_digest.txt ]; then
+            head -c 3500 bme_digest.txt | curl -s \
+              -H "Title: UCI BME news digest" \
+              -H "Click: https://github.com/${{ github.repository }}/blob/main/bme_digest.txt" \
+              --data-binary @- "https://ntfy.sh/$NTFY_TOPIC"
+          fi
