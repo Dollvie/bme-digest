@@ -18,7 +18,7 @@ KEYWORDS = [
     "samueli school of engineering",
 ]
 
-DAYS_BACK = 7  # BME news is sparse, so look back a week
+DAYS_BACK = 30  # BME news is sparse, so look back a week
 
 cutoff = datetime.now(timezone.utc) - timedelta(days=DAYS_BACK)
 seen = set()
